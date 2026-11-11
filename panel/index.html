@@ -1,0 +1,633 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>RAG-агент 1С — панель</title>
+<style>
+:root{color-scheme:light dark;
+--bg:#f6f6f8;--card:#fff;--sunk:#f1f1f4;--side:#fff;--fg:#18181b;--mut:#52525b;--line:#e4e4e9;--line-strong:#cfcfd8;
+--acc:#4338ca;--acc-hover:#3730a3;--acc-soft:#eceafd;--acc-fg:#fff;
+--ok:#15803d;--ok-soft:#e6f5ec;--err:#b91c1c;--err-soft:#fdeceb;--warn:#92400e;--warn-soft:#fff3d6;
+--code:#14141c;--code-fg:#d6e2ff;
+--sh:0 1px 2px rgba(24,24,27,.06);--sh-pop:0 8px 24px rgba(24,24,27,.14);
+--r-s:8px;--r-m:12px;--r-l:16px;--t:.15s;
+--s1:4px;--s2:8px;--s3:12px;--s4:16px;--s5:20px;--s6:24px;--s8:32px;
+--f-body:14.5px;--f-sm:13px;--f-xs:12px;--f-h1:28px;--f-h2:16px}
+:root[data-theme=dark]{--bg:#0d0d12;--card:#16161d;--sunk:#101016;--side:#12121a;--fg:#ececf1;--mut:#a1a1b0;--line:#26262f;--line-strong:#3a3a46;--acc:#818cf8;--acc-hover:#a5b0ff;--acc-soft:#1f2040;--acc-fg:#0b0b18;--ok:#4ade80;--ok-soft:#12301f;--err:#f87171;--err-soft:#3a1c1c;--warn:#fbbf24;--warn-soft:#352a10;--sh:none;--sh-pop:0 8px 24px rgba(0,0,0,.5)}
+@media (prefers-color-scheme:dark){:root:not([data-theme=light]){--bg:#0d0d12;--card:#16161d;--sunk:#101016;--side:#12121a;--fg:#ececf1;--mut:#a1a1b0;--line:#26262f;--line-strong:#3a3a46;--acc:#818cf8;--acc-hover:#a5b0ff;--acc-soft:#1f2040;--acc-fg:#0b0b18;--ok:#4ade80;--ok-soft:#12301f;--err:#f87171;--err-soft:#3a1c1c;--warn:#fbbf24;--warn-soft:#352a10;--sh:none;--sh-pop:0 8px 24px rgba(0,0,0,.5)}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:var(--f-body)/1.5 system-ui,"Segoe UI",sans-serif;min-height:100vh;-webkit-font-smoothing:antialiased}
+svg.i{width:18px;height:18px;flex:none;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+/* shell: phone first */
+aside{background:var(--side);border-bottom:1px solid var(--line);padding:var(--s3) var(--s4)}
+.brand{display:flex;gap:var(--s3);align-items:center;padding-bottom:var(--s3)}
+.logo{width:36px;height:36px;border-radius:var(--r-s);background:var(--acc);display:grid;place-items:center;color:var(--acc-fg);font-weight:700;font-size:var(--f-sm)}
+.brand b{display:block;font-size:15px;line-height:1.2}.brand small{font-size:var(--f-xs);color:var(--mut)}
+#tabs{display:flex;gap:var(--s1);overflow-x:auto;padding-bottom:var(--s1)}
+.grp{display:none;font-size:var(--f-xs);font-weight:600;color:var(--mut);padding:var(--s5) var(--s3) var(--s2)}
+#tabs button{display:flex;gap:var(--s3);align-items:center;white-space:nowrap;text-align:left;border:0;background:transparent;color:var(--mut);padding:var(--s2) var(--s3);border-radius:var(--r-s);cursor:pointer;font:inherit;font-weight:500;transition:background var(--t),color var(--t)}
+#tabs button:hover{background:var(--sunk);color:var(--fg)}
+#tabs button.on{background:var(--acc-soft);color:var(--acc)}
+#tabs button:active{background:var(--line)}
+.runbox{display:none;margin-top:var(--s3);padding:var(--s3);border-radius:var(--r-s);background:var(--sunk);border:1px solid var(--line);font-size:var(--f-sm);color:var(--mut)}
+.runbox.on{display:flex;gap:var(--s2);align-items:center}
+.runbox i{width:8px;height:8px;border-radius:50%;background:var(--acc);flex:none;animation:p 1.2s infinite}
+@keyframes p{50%{opacity:.25}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+.content{min-width:0}
+main{width:100%;max-width:1040px;margin:0 auto;padding:var(--s6) var(--s4) 112px}
+.ph{margin-bottom:var(--s6)}.ph h1{font-size:var(--f-h1);line-height:1.15;letter-spacing:-.02em;margin:0 0 var(--s2)}.ph p{margin:0;color:var(--mut);max-width:62ch}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--r-l);padding:var(--s5);margin-bottom:var(--s4);box-shadow:var(--sh)}
+.card h2{font-size:var(--f-h2);margin:0 0 var(--s1);display:flex;gap:var(--s3);align-items:center}
+.card h2 .n{width:24px;height:24px;border-radius:50%;background:var(--acc);color:var(--acc-fg);display:grid;place-items:center;font-size:var(--f-xs);font-weight:700;flex:none}
+.card>.msg:first-of-type,.card h2+.msg{margin:var(--s1) 0 var(--s4)}
+.sub{display:flex;gap:var(--s1);background:var(--sunk);border:1px solid var(--line);border-radius:var(--r-m);padding:var(--s1);margin-bottom:var(--s5);overflow-x:auto}
+.sub button{display:flex;gap:var(--s2);align-items:center;border:0;background:transparent;color:var(--mut);padding:var(--s2) var(--s3);border-radius:var(--r-s);cursor:pointer;font:inherit;font-weight:500;white-space:nowrap;transition:background var(--t),color var(--t)}
+.sub button:hover{color:var(--fg)}
+.sub button.on{background:var(--card);color:var(--fg);box-shadow:var(--sh)}
+.grid{display:grid;grid-template-columns:1fr;gap:var(--s4)}
+label,.fld{display:block;font-size:var(--f-sm);color:var(--mut)}
+label>span:first-child,.fld>span:first-child{display:block;margin-bottom:var(--s1);color:var(--fg);font-weight:500}
+label small,.fld small{display:block;margin-top:var(--s1);font-size:var(--f-xs);line-height:1.4}
+input[type=text],input[type=number],input[type=password]{width:100%;padding:10px var(--s3);border:1px solid var(--line-strong);border-radius:var(--r-s);background:var(--card);color:var(--fg);font:inherit;transition:border-color var(--t),box-shadow var(--t)}
+input:hover{border-color:var(--mut)}
+input:focus{outline:0;border-color:var(--acc);box-shadow:0 0 0 3px var(--acc-soft)}
+input:disabled{background:var(--sunk);color:var(--mut)}
+.chk{display:flex;gap:var(--s3);align-items:flex-start;padding:var(--s3) var(--s4);border:1px solid var(--line);border-radius:var(--r-m);background:var(--card);cursor:pointer;transition:border-color var(--t),background var(--t)}
+.chk:hover{border-color:var(--line-strong)}.chk:has(input:checked){border-color:var(--acc);background:var(--acc-soft)}
+.chk input{margin-top:3px;accent-color:var(--acc)}.chk>span{color:var(--fg)}.chk small{color:var(--mut)}
+/* custom listbox (replaces native select) */
+.sel{position:relative}
+.selb{display:flex;align-items:center;justify-content:space-between;gap:var(--s3);width:100%;padding:10px var(--s3) 10px var(--s3);border:1px solid var(--line-strong);border-radius:var(--r-s);background:var(--card);color:var(--fg);font:inherit;text-align:left;cursor:pointer;transition:border-color var(--t),box-shadow var(--t)}
+.selb:hover{border-color:var(--mut)}.selb[aria-expanded=true]{border-color:var(--acc);box-shadow:0 0 0 3px var(--acc-soft)}
+.selb svg{color:var(--mut);transition:transform var(--t)}.selb[aria-expanded=true] svg{transform:rotate(180deg)}
+.sell{position:absolute;z-index:20;left:0;right:0;top:calc(100% + var(--s1));margin:0;padding:var(--s1);list-style:none;background:var(--card);border:1px solid var(--line);border-radius:var(--r-m);box-shadow:var(--sh-pop);max-height:260px;overflow:auto}
+.sell[hidden]{display:none}
+.sell li{padding:var(--s2) var(--s3);border-radius:var(--r-s);cursor:pointer;color:var(--fg);display:flex;justify-content:space-between;gap:var(--s2)}
+.sell li:hover,.sell li:focus{background:var(--sunk);outline:0}
+.sell li[aria-selected=true]{background:var(--acc-soft);color:var(--acc);font-weight:600}
+/* buttons */
+button.btn{display:inline-flex;gap:var(--s2);align-items:center;justify-content:center;background:var(--acc);color:var(--acc-fg);border:1px solid var(--acc);border-radius:var(--r-s);padding:9px var(--s4);font:inherit;font-weight:600;cursor:pointer;transition:background var(--t),border-color var(--t),transform var(--t)}
+button.btn:hover{background:var(--acc-hover);border-color:var(--acc-hover)}
+button.btn:active{transform:translateY(1px)}
+button.btn.sec{background:var(--card);color:var(--fg);border-color:var(--line-strong);font-weight:500}
+button.btn.sec:hover{background:var(--sunk);border-color:var(--mut)}
+button.btn.dng{background:var(--card);color:var(--err);border-color:var(--err);font-weight:500}
+button.btn.dng:hover{background:var(--err-soft)}
+button.btn:disabled{opacity:.45;cursor:not-allowed;transform:none}
+.row{display:flex;flex-wrap:wrap;gap:var(--s3);align-items:center}.row.top{margin-top:var(--s4)}
+pre{background:var(--code);color:var(--code-fg);border-radius:var(--r-m);padding:var(--s3) var(--s4);overflow:auto;max-height:360px;font:12.5px/1.5 Consolas,monospace;margin:var(--s3) 0 0;white-space:pre-wrap}
+.bar{position:fixed;left:0;right:0;bottom:0;background:var(--card);border-top:1px solid var(--line);padding:var(--s3) var(--s4);display:flex;gap:var(--s3);align-items:center;justify-content:flex-end;z-index:5}
+.msg{flex:1;color:var(--mut);font-size:var(--f-sm)}.ok{color:var(--ok)}.err{color:var(--err)}
+.msg.ok,.msg.err{display:flex;gap:var(--s2);align-items:center}
+.hide{display:none!important}
+.mg{display:grid;grid-template-columns:1fr;gap:var(--s4)}
+.mc{border:1px solid var(--line);border-radius:var(--r-m);padding:var(--s4);background:var(--card);transition:border-color var(--t),box-shadow var(--t)}
+.mc:hover{border-color:var(--line-strong)}.mc.sel{border-color:var(--acc);box-shadow:0 0 0 2px var(--acc-soft)}
+.mc ul{margin:var(--s2) 0;padding-left:var(--s5);font-size:var(--f-sm)}.mh{display:flex;justify-content:space-between;gap:var(--s2)}
+.tag{display:inline-block;background:var(--acc-soft);color:var(--acc);border-radius:99px;padding:1px var(--s2);font-size:var(--f-xs);font-weight:600;font-style:normal;height:fit-content}
+.warn{display:flex;gap:var(--s2);align-items:flex-start;margin-top:var(--s3);padding:var(--s3);border-radius:var(--r-s);background:var(--warn-soft);color:var(--warn);border:1px solid var(--line);font-size:var(--f-sm)}
+table{width:100%;border-collapse:collapse;margin-top:var(--s2);font-size:var(--f-sm)}td{padding:var(--s3) var(--s2);border-top:1px solid var(--line);vertical-align:top}td:first-child{white-space:nowrap;font-weight:500}.h{color:var(--mut);font-size:var(--f-xs)}code{background:var(--sunk);padding:1px 6px;border-radius:6px}
+.chip{display:inline-flex;gap:var(--s1);align-items:center;padding:2px var(--s3) 2px var(--s2);border-radius:99px;font-size:var(--f-xs);font-weight:600}
+.chip svg.i{width:14px;height:14px}
+.chip.ok{background:var(--ok-soft);color:var(--ok)}.chip.err{background:var(--err-soft);color:var(--err)}.chip.wait{background:var(--sunk);color:var(--mut)}
+.stat{display:grid;grid-template-columns:1fr;gap:var(--s3)}.stat>div{border:1px solid var(--line);border-radius:var(--r-m);padding:var(--s3) var(--s4);background:var(--card)}
+.stat b{display:block;font-size:20px;letter-spacing:-.01em}.stat .h{display:block}
+.stat .good b{color:var(--ok)}.stat .bad b{color:var(--err)}
+.stat .good,.stat .bad{background:var(--sunk)}
+.opts{display:grid;gap:var(--s3)}.opt{display:flex;gap:var(--s3);align-items:flex-start;padding:var(--s4);border:1px solid var(--line);border-radius:var(--r-m);background:var(--card);cursor:pointer;color:var(--fg);transition:border-color var(--t),background var(--t)}
+.opt:hover{border-color:var(--line-strong)}.opt:has(input:checked){border-color:var(--acc);background:var(--acc-soft)}.opt input{margin-top:4px;accent-color:var(--acc)}.opt small{color:var(--mut)}
+.steps{list-style:none;margin:var(--s4) 0 0;padding:0;display:grid;gap:var(--s2)}.steps:empty{display:none}
+.steps li{display:flex;flex-wrap:wrap;gap:var(--s3);align-items:center;padding:var(--s3) var(--s4);border:1px solid var(--line);border-radius:var(--r-m);background:var(--card);color:var(--mut)}
+.steps li .si{width:20px;height:20px;display:grid;place-items:center}
+.steps li .pb{flex-basis:100%;height:6px;border-radius:99px;background:var(--line);overflow:hidden}.steps li .pb>i{display:block;height:100%;background:var(--acc);border-radius:99px;transition:width .4s}.steps li .pb.ind>i{width:35%;animation:pbi 1.4s ease-in-out infinite}@keyframes pbi{0%{margin-left:-35%}100%{margin-left:100%}}.steps li .pt{flex-basis:100%;font-size:var(--f-xs);color:var(--mut)}
+.rverr{margin:var(--s3) 0 0;padding:var(--s3);border:1px solid var(--err);background:var(--err-soft);color:var(--err);border-radius:var(--r-m);font-size:var(--f-sm);white-space:pre-wrap;word-break:break-word}.rverr.hide{display:none}
+.steps li.run{border-color:var(--acc);background:var(--acc-soft);color:var(--fg)}.steps li.done{border-color:var(--ok);color:var(--fg)}.steps li.done .si{color:var(--ok)}.steps li.fail{border-color:var(--err);background:var(--err-soft);color:var(--fg)}.steps li.fail .si{color:var(--err)}.steps li.run .si{color:var(--acc)}
+.dirty{display:inline-flex;gap:var(--s2);align-items:center;color:var(--warn);font-size:var(--f-sm);font-weight:500}
+.chip.warn{background:var(--warn-soft);color:var(--warn)}
+.banner{position:sticky;top:0;z-index:6;margin:0 0 var(--s4);padding:var(--s3) var(--s4);border:1px solid var(--err);background:var(--err-soft);color:var(--err);border-radius:var(--r-m);font-size:var(--f-sm)}
+.card h2 .chip{margin-left:auto;font-weight:600}
+.card.locked{opacity:.6}
+.wzbar{height:8px;border-radius:99px;background:var(--line);overflow:hidden;margin-top:var(--s3)}.wzbar>i{display:block;height:100%;background:var(--ok);transition:width .4s}
+.seg{display:inline-flex;gap:var(--s1);background:var(--sunk);border:1px solid var(--line);border-radius:var(--r-m);padding:var(--s1);margin:var(--s2) 0 var(--s3);flex-wrap:wrap}
+.seg button{border:0;background:transparent;color:var(--mut);padding:var(--s2) var(--s3);border-radius:var(--r-s);cursor:pointer;font:inherit;font-weight:500}
+.seg button.on{background:var(--card);color:var(--fg);box-shadow:var(--sh)}
+.kv{display:grid;grid-template-columns:max-content 1fr;gap:var(--s2) var(--s4);align-items:center;margin-top:var(--s3);font-size:var(--f-sm)}.kv code{word-break:break-all}
+ol.how{margin:var(--s2) 0;padding-left:var(--s5);font-size:var(--f-sm);color:var(--mut)}ol.how li{margin:2px 0}
+a{color:var(--acc)}
+/* wide screens */
+@media (min-width:640px){.grid{grid-template-columns:repeat(auto-fit,minmax(280px,1fr))}.mg{grid-template-columns:repeat(auto-fit,minmax(270px,1fr))}.stat{grid-template-columns:repeat(auto-fit,minmax(200px,1fr))}main{padding:var(--s8) var(--s6) 112px}.bar{padding:var(--s3) var(--s6)}}
+@media (min-width:860px){
+body{display:flex}
+aside{width:248px;flex:none;position:sticky;top:0;height:100vh;overflow:auto;display:flex;flex-direction:column;border-bottom:0;border-right:1px solid var(--line);padding:var(--s5) var(--s3)}
+.brand{padding:0 var(--s2) var(--s4)}
+.grp{display:block}
+#tabs{display:block;overflow:visible}
+#tabs button{width:100%;margin-bottom:2px;white-space:normal}
+.runbox{margin-top:auto}
+.content{flex:1}
+.bar{left:248px}}
+</style>
+</head>
+<body>
+<aside>
+  <div class="brand"><div class="logo">1С</div><div><b>RAG-агент</b><small>панель управления</small></div></div>
+  <nav id="tabs"></nav>
+  <div class="runbox" id="runbox"><i></i><span id="run"></span></div>
+</aside>
+<div class="content">
+<main>
+  <div class="banner hide" id="banner" role="alert"></div>
+  <div class="ph"><h1 id="pt"></h1><p id="pd"></p></div>
+  <div id="settings"></div>
+  <div id="pStart" class="hide">
+    <div class="card"><h2>Ход настройки<span class="chip wait" id="wzCount">…</span></h2>
+      <p class="msg" id="wzHint">Проверяю состояние…</p>
+      <div class="wzbar"><i id="wzBar" style="width:0"></i></div>
+      <div class="row top"><button class="btn sec" onclick="wzLoad()">Проверить снова</button></div>
+    </div>
+    <div class="card" id="ws1"><h2><span class="n">1</span>Папка с выгрузкой конфигурации<span class="chip wait" id="wc1">…</span></h2>
+      <p class="msg">В Конфигураторе откройте <b>Конфигурация → Выгрузить конфигурацию в файлы</b> и выгрузите в пустую папку. Затем укажите её путь здесь. Сама база не меняется.</p>
+      <div class="row"><input type="text" id="wzSrc" placeholder="например D:\1C\Выгрузка\МояБаза" style="flex:1;min-width:220px"><button class="btn" onclick="wzSaveSrc()">Сохранить</button></div>
+      <p class="h" id="wd1"></p>
+    </div>
+    <div class="card" id="ws2"><h2><span class="n">2</span>Хранилище индекса (Qdrant)<span class="chip wait" id="wc2">…</span></h2>
+      <p class="msg">Здесь хранится поисковый индекс по коду. Рекомендуется Qdrant в Docker; без Docker можно работать во встроенном режиме.</p>
+      <p class="h" id="wd2"></p>
+      <div class="row top" id="wa2"></div>
+    </div>
+    <div class="card" id="ws3"><h2><span class="n">3</span>Индексация конфигурации<span class="chip wait" id="wc3">…</span></h2>
+      <p class="msg">Код и метаданные нарезаются на фрагменты и попадают в индекс. Типовая конфигурация на обычном ПК — от 20 минут до нескольких часов; при первом запуске скачивается модель поиска (~1 ГБ). Окно можно закрыть: задача продолжится, ход виден при следующем открытии панели.</p>
+      <p class="h" id="wd3"></p>
+      <div class="row top"><button class="btn" id="wzGo" onclick="wzIndex()" disabled>Проиндексировать</button>
+        <button class="btn dng hide" id="wzStop" onclick="stopJob()">Остановить</button><span class="msg" id="wzWhy"></span></div>
+      <div class="rverr hide" id="wzErr"></div>
+      <ol class="steps" id="wzSteps"></ol>
+      <pre id="wzLog" class="hide"></pre>
+      <p class="msg hide" id="wzDone" style="margin-top:12px"></p>
+    </div>
+    <div class="card" id="ws4"><h2><span class="n">4</span>Подключить AI-клиента<span class="chip wait" id="wc4">…</span></h2>
+      <p class="msg">Агент работает внутри вашего AI-клиента как набор инструментов (MCP). Модель и чат — на стороне клиента; LLM в этой панели настраивать не нужно.</p>
+      <div class="seg" role="tablist"><button id="wk1" role="tab" onclick="wzKind('stdio')">Claude Desktop, Cursor, LM Studio</button><button id="wk2" role="tab" onclick="wzKind('http')">Open WebUI и другие по HTTP</button></div>
+      <div id="wzStdio">
+        <ol class="how">
+          <li>Скопируйте настройку кнопкой ниже.</li>
+          <li>Вставьте её в конфиг клиента: <b>Claude Desktop</b> — Settings → Developer → Edit Config (claude_desktop_config.json); <b>Cursor</b> — Settings → MCP → Add new MCP server (mcp.json); <b>LM Studio</b> — Program → Install → Edit mcp.json. Если в файле уже есть <code>mcpServers</code>, добавьте только блок <code>rag_agent</code>.</li>
+          <li>Перезапустите клиент и спросите, например: «как проводится документ … по регистрам».</li>
+        </ol>
+        <div class="row"><button class="btn" onclick="copyText(JSON.stringify(MC.stdio,null,2),'Настройка скопирована')">Копировать настройку</button></div>
+        <pre id="wzJson"></pre>
+      </div>
+      <div id="wzHttp" class="hide">
+        <ol class="how">
+          <li>Запустите MCP-сервер кнопкой ниже (он работает, пока не остановите, в том числе при закрытой панели).</li>
+          <li>Open WebUI: Admin Panel → Settings → External Tools → «+» → тип <b>MCP (Streamable HTTP)</b>, адрес и токен — из блока ниже.</li>
+        </ol>
+        <div class="row"><button class="btn" id="wzMcp" onclick="toggleMcp()">Запустить MCP-сервер</button><span class="msg" id="wzMcpSt"></span></div>
+        <div class="kv" id="wzKv"></div>
+        <div class="row top"><button class="btn sec" id="wzTok" onclick="genToken()">Создать токен</button><span class="h" id="wzTokH">нужен, если сервер доступен из сети (0.0.0.0)</span></div>
+      </div>
+    </div>
+    <div class="card"><h2>Необязательно: данные базы 1С</h2>
+      <p class="msg">Шагов 1–4 достаточно для вопросов по коду и метаданным. Чтобы агент отвечал и по данным (остатки, продажи, списки документов), опубликуйте HTTP-сервис из папки <code>onec_http</code> и задайте адрес во вкладке «Подключение к 1С».</p>
+      <div class="row"><button class="btn sec" onclick="go('onec')">Открыть «Подключение к 1С»</button></div>
+    </div>
+  </div>
+  <div id="pTools" class="hide">
+    <div class="sub" id="subs"></div>
+    <div data-sub="reindex">
+    <div class="card"><h2>Что сейчас в базе знаний</h2>
+      <div id="rvState" class="stat"><span class="h">загружаю…</span></div>
+      <div class="row top"><button class="btn sec" onclick="rvLoad()">Обновить</button>
+        <button class="btn sec hide" id="rvDocker" onclick="start('/api/docker','Запускаю Qdrant (Docker)…')">Запустить Qdrant (Docker)</button></div>
+    </div>
+    <div class="card"><h2><span class="n">1</span>Откуда брать новую конфигурацию</h2>
+      <p class="msg">Папка, куда выгружена конфигурация: Конфигуратор → Конфигурация → Выгрузить конфигурацию в файлы.</p>
+      <label><span>Папка выгрузки</span><input type="text" id="rvSrc" placeholder="D:/dumps/моя_конфигурация" oninput="rvSum()"></label>
+    </div>
+    <div class="card"><h2><span class="n">2</span>Что сделать</h2>
+      <div class="opts">
+        <label class="opt"><input type="radio" name="rvMode" value="replace" checked onchange="rvSum()"><span><b>Заменить на новую конфигурацию</b> <i class="tag">рекомендуется</i><small>Старый индекс удаляется, новая выгрузка нарезается и индексируется с нуля. Старый индекс стирается только после успешной нарезки.</small></span></label>
+        <label class="opt"><input type="radio" name="rvMode" value="update" onchange="rvSum()"><span><b>Только обновить изменённое</b><small>Та же конфигурация, но вы поправили код. Старое остаётся, добавляется новое. Быстро.</small></span></label>
+        <label class="opt"><input type="radio" name="rvMode" value="clear" onchange="rvSum()"><span><b>Только удалить индекс</b><small>Очистить Qdrant и ничего не индексировать. Агент перестанет видеть код, пока вы не проиндексируете заново.</small></span></label>
+      </div>
+      <label class="chk" style="margin-top:12px"><input type="checkbox" id="rvHelp" onchange="rvSum()"><span>Затронуть и справку платформы<small>Обычно не нужно: справка 1С не зависит от вашей конфигурации.</small></span></label>
+    </div>
+    <div class="card"><h2><span class="n">3</span>Запуск</h2>
+      <div class="warn" id="rvPlan" style="margin:0 0 12px"></div>
+      <div class="row"><button class="btn" id="rvGo" onclick="rvStart()">Начать</button>
+        <button class="btn dng" id="rvStop" onclick="stopJob()">Остановить</button></div>
+      <div class="rverr hide" id="rvErr"></div>
+      <ol class="steps" id="rvSteps"></ol>
+      <pre id="rvLog" class="hide"></pre>
+      <p class="msg hide" id="rvDone" style="margin-top:12px"></p>
+    </div>
+    </div>
+    <div data-sub="diag">
+    <div class="card"><h2>Проверка всей системы</h2>
+      <p class="msg">Проверяет по порядку: пакеты Python → конфиг → папка выгрузки → пробная нарезка → Qdrant → модель поиска → векторы → поиск по коду → 1С → LLM (нужна только для CLI) → MCP. Первая проверка модели может идти до 10 минут: модель скачивается.</p>
+      <div class="row"><button class="btn" id="bAll" onclick="checkAll()">Проверить всё</button></div>
+      <table id="chk"></table>
+    </div>
+    <div class="card"><h2>Установка и сервисы</h2>
+      <p class="msg">Первичная установка и обслуживание Qdrant и MCP-сервера.</p>
+      <div class="row">
+        <button class="btn sec" onclick="start('/api/pip','Устанавливаю зависимости…')">Установить зависимости</button>
+        <button class="btn sec" onclick="start('/api/docker','Запускаю Qdrant (Docker)…')">Запустить Qdrant (Docker)</button>
+        <button class="btn sec" onclick="start('/api/repair','Ищу и пересчитываю нулевые векторы…')">Починить векторы</button>
+        <button class="btn sec" id="bMcp" onclick="toggleMcp()">Запустить MCP-сервер (HTTP)</button>
+        <span id="mcpSt" class="msg"></span>
+      </div>
+    </div>
+    </div>
+    <div data-sub="index">
+    <div class="card"><h2>Индексация с ручными параметрами</h2>
+      <p class="msg">Для опытных: обычно достаточно «Первый запуск», шаг 3, или вкладки «Переиндексация». Папка выгрузки — из настроек. Без галок индексируются только изменённые фрагменты.</p>
+      <div class="grid">
+        <label class="chk"><input type="checkbox" id="oRecreate"><span>Пересоздать коллекцию<small>смена модели / полная пересборка</small></span></label>
+        <label class="chk"><input type="checkbox" id="oFull"><span>Пересчитать все эмбеддинги</span></label>
+        <label class="chk"><input type="checkbox" id="oHelp"><span>Вместе со справкой платформы</span></label>
+        <label class="chk"><input type="checkbox" id="oSkip"><span>Без нарезки<small>JSONL уже есть</small></span></label>
+      </div>
+      <div class="row top">
+        <button class="btn" id="bIngest" onclick="ingest()">Запустить индексацию</button>
+        <button class="btn dng" onclick="stopJob()">Остановить</button>
+      </div>
+    </div>
+    <div class="card"><h2>Подбор модели и размера фрагментов</h2>
+      <p class="msg">Берёт выборку модулей из выгрузки, режет и эмбеддит каждой моделью/размером чанка, меряет качество поиска и скорость, оценивает время полной индексации. Занимает от 10 минут до часа. Модели mpnet (~1 ГБ) и e5 (~2.2 ГБ) при первом запуске скачиваются с Hugging Face.</p>
+      <div class="grid">
+        <label><span>Папка выгрузки (пусто — из настроек)</span><input type="text" id="tSrc"></label>
+        <label><span>Бюджет времени индексации, ч</span><input type="number" id="tBud" value="8"></label>
+        <label><span>Размеры чанка</span><input type="text" id="tSizes" value="800,1500,2800"></label>
+        <label><span>Модели через запятую: minilm, mpnet, e5</span><input type="text" id="tModels" value="minilm,mpnet"></label>
+      </div>
+      <div class="row top">
+        <button class="btn" onclick="tune()">Запустить подбор</button>
+        <button class="btn sec" onclick="applyTune()">Применить рекомендацию</button>
+      </div>
+    </div>
+    <div class="card"><h2>Оценка качества поиска</h2>
+      <p class="msg">Строит вопросы из самой выгрузки (имя процедуры словами, описание, строка из тела, структура объекта, команда формы, параметр макета), прогоняет через боевой поиск и показывает, как часто находится нужное. Занимает 3–5 минут. Результат — во вкладке «Журнал» и в exports/eval_search.json.</p>
+      <div class="grid">
+        <label><span>Вопросов каждого типа</span><input type="number" id="eN" value="25"></label>
+        <label><span>Только папки (необязательно)</span><input type="text" id="eC" placeholder="CommonModules,Documents"></label>
+      </div>
+      <div class="row top"><button class="btn" onclick="evalRun()">Оценить поиск</button></div>
+    </div>
+    </div>
+    <div data-sub="conn">
+    <div class="card"><h2>Подключить другую конфигурацию</h2>
+      <p class="msg">Новая выгрузка индексируется в <b>отдельную</b> коллекцию, рабочая не затрагивается: нарезка с чисткой → индексация с проверкой векторов → замер качества на вопросах из этой выгрузки. Галка «сделать рабочей» переключает конфиг после успеха (потом перезапустите MCP). Для быстрой пробы укажите число файлов.</p>
+      <div class="grid">
+        <label><span>Папка выгрузки</span><input type="text" id="oSrc" placeholder="D:/dumps/upp14"></label>
+        <label><span>Короткое имя (латиница)</span><input type="text" id="oName" placeholder="upp14"></label>
+        <label><span>Только первые N файлов (проба, необязательно)</span><input type="number" id="oLim"></label>
+        <label class="chk"><input type="checkbox" id="oAct"><span>После успеха сделать рабочей</span></label>
+      </div>
+      <div class="row top"><button class="btn" onclick="onboard()">Подключить и проверить</button></div>
+    </div>
+    <div class="card"><h2>Подключение AI-клиента</h2>
+      <p class="msg">Готовые настройки для Claude Desktop, Cursor, LM Studio и Open WebUI, а также токен доступа — в разделе «Первый запуск», шаг 4.</p>
+      <div class="row"><button class="btn sec" onclick="go('start')">Открыть шаг 4</button></div>
+    </div>
+    </div>
+    <div data-sub="log">
+    <div class="card"><h2>Журнал задач</h2><p class="msg">Ход индексации, подбора, оценки и подключения.</p><pre id="out">—</pre></div>
+    <div class="card"><h2>Лог MCP-сервера</h2><pre id="mcpLog">—</pre></div>
+    </div>
+  </div>
+</main>
+</div>
+<div class="bar"><span class="msg" id="msg" role="status" aria-live="polite"></span><span class="dirty hide" id="dirty"></span><button class="btn" id="bSave" onclick="save()">Сохранить настройки</button></div>
+<script>
+const $=s=>document.querySelector(s);
+let S=null,tab="start",sub="reindex",dirty={},RV=null,WZ=null,MC=null,wzKindSel="stdio",showTok=false,started={rv:false,wz:false};
+const IC={cog:'<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9 7 7M17 17l2.1 2.1M4.9 19.1 7 17M17 7l2.1-2.1"/>',plug:'<path d="M12 22v-5M9 8V2M15 8V2M18 8v5a6 6 0 0 1-12 0V8z"/>',folder:'<path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>',cpu:'<rect x="5" y="5" width="14" height="14" rx="2"/><path d="M9 1v4M15 1v4M9 19v4M15 19v4M1 9h4M1 15h4M19 9h4M19 15h4"/>',db:'<ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v14c0 1.7 3.6 3 8 3s8-1.3 8-3V5M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/>',layers:'<path d="M12 2 2 7l10 5 10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>',chat:'<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>',link:'<path d="M10 13a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1M14 11a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1"/>',bot:'<rect x="4" y="8" width="16" height="12" rx="2"/><path d="M12 8V4M9 14h.01M15 14h.01"/>',tool:'<path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18v3h3l6.3-6.3a4 4 0 0 0 5.4-5.4l-2.5 2.5-2.4-.6-.6-2.4z"/>',refresh:'<path d="M21 12a9 9 0 0 1-15 6.7L3 16M3 12a9 9 0 0 1 15-6.7L21 8M21 3v5h-5M3 21v-5h5"/>',ok:'<circle cx="12" cy="12" r="9"/><path d="m8 12 3 3 5-6"/>',down:'<path d="M12 3v12M7 10l5 5 5-5M4 21h16"/>',log:'<path d="M5 3h14v18H5zM9 8h6M9 12h6M9 16h4"/>',chev:'<path d="m6 9 6 6 6-6"/>',x:'<circle cx="12" cy="12" r="9"/><path d="m9 9 6 6M15 9l-6 6"/>',alert:'<path d="M12 3 2 20h20zM12 10v4M12 17h.01"/>',dot:'<circle cx="12" cy="12" r="7"/>',spin:'<path d="M12 3a9 9 0 1 0 9 9"/>',flag:'<path d="M5 21V4M5 4h11l-2 4 2 4H5"/>'};
+const ic=n=>`<svg class="i" viewBox="0 0 24 24" aria-hidden="true">${IC[n]||IC.cog}</svg>`;
+const ICON={start:"flag",onec:"plug",ingest:"folder",models:"cpu",qdrant:"db",embedding:"layers",llm:"chat",mcp:"link",agent:"bot",tools:"tool"};
+const DESC={start:"Четыре шага от установки до первого вопроса агенту. Статус каждого шага проверяется автоматически.",
+  onec:"Нужно только для вопросов по данным базы (остатки, продажи, списки). Для вопросов по коду и метаданным оставьте режим none.",
+  ingest:"Откуда брать выгрузку и как нарезать её на фрагменты. Значения по умолчанию подходят большинству конфигураций.",
+  models:"Модель смыслового поиска и размер фрагментов кода. После смены модели нужна индексация заново.",
+  qdrant:"Где хранится поисковый индекс по коду и как по нему искать.",
+  embedding:"Тонкая настройка расчёта векторов. Обычно менять не нужно.",
+  llm:"Нужна только встроенному CLI-агенту (cli.py). Если подключаете агента к Claude Desktop, Cursor, LM Studio или Open WebUI, модель даёт клиент — здесь ничего заполнять не нужно.",
+  mcp:"Сервер, через который AI-клиенты по HTTP (Open WebUI и другие) получают инструменты агента. Для Claude Desktop, Cursor и LM Studio не нужен.",
+  agent:"Поведение агента: для кого отвечает и лимиты выдачи.",
+  tools:"Переиндексация, проверка системы, сервисы и журнал задач."};
+const GROUPS=[["Начало",["start"]],["Работа",["tools"]],["Настройки",["onec","qdrant","mcp"]],["Расширенные",["ingest","models","embedding","llm","agent"]]];
+const TITLES={start:"Первый запуск",tools:"Запуск и проверки"};
+const SUBS=[["reindex","Переиндексация","refresh"],["diag","Проверка и сервисы","ok"],["index","Индексация вручную","down"],["conn","Другие конфигурации","link"],["log","Журнал","log"]];
+function api(u,b){
+  const o={headers:{"X-Panel":"1"}};if(b!==undefined){o.method="POST";o.headers["Content-Type"]="application/json";o.body=JSON.stringify(b)}
+  return fetch(u,o).then(async r=>{const t=await r.text();banner("");try{return JSON.parse(t)}catch(e){return {ok:false,error:`Ответ сервера ${r.status}: ${t.slice(0,200)}`}}},
+    e=>{banner("Панель не отвечает: окно сервера закрыто или перезапускается. Запустите panel.bat и обновите страницу.");return {ok:false,error:"Панель не отвечает",offline:true}})}
+const post=(u,b={})=>api(u,b).then(r=>(r.ok===false&&say(r.error,1),r));
+function banner(t){const b=$("#banner");b.textContent=t;b.classList.toggle("hide",!t)}
+function say(t,e){const m=$("#msg");m.textContent=t||"";m.className="msg "+(e?"err":"ok")}
+function go(t,s){if(t!=tab||s!=sub)say("");tab=t;if(s)sub=s;draw();window.scrollTo(0,0)}
+async function copyText(t,m){try{await navigator.clipboard.writeText(t);say(m)}catch(e){say("Не удалось скопировать — выделите текст вручную",1)}}
+async function stopJob(){const r=await post("/api/stop");if(r.ok)say("Задача останавливается…")}
+function esc(s){return String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]))}
+
+const val=k=>dirty[k]??S.values[k];
+const setv=(k,v)=>{dirty[k]=v};
+async function drawModels(sec){
+  const {models}=await api("/api/models");
+  const cur=val("embedding.model"),m=models.find(x=>x.name==cur);
+  const cards=models.map(x=>`<div class="mc ${x.name==cur?"sel":""}">
+    <div class="mh"><b>${esc(x.title)}</b>${x.name==cur?'<span class="tag">выбрана</span>':""}</div>
+    <div class="h">${esc(x.tier)} · ${esc(x.langs)}</div>
+    <ul><li>Вектор: ${x.dim} · Размер: ${x.size_gb?x.size_gb+" ГБ":"—"}</li>
+    <li>Окно: <b>${x.window_tokens>=8000?"8k+":x.window_tokens}</b> токенов ≈ ${x.window_tokens>=8000?"очень длинное":x.window_chars+" симв."} <span class="h">${x.window_verified?"проверено":"по каталогу"}</span></li>
+    <li>Скорость индексации (CPU): ${x.speed<=1?"быстро (×1)":"≈ в "+x.speed+" раз медленнее"} <span class="h">оценка</span></li></ul>
+    <div class="h">${esc(x.notes)}</div>
+    <div class="row" style="margin-top:8px"><button class="btn ${x.name==cur?"sec":""}" onclick="pickModel('${x.key}')">Выбрать</button>
+    ${x.provider=="fastembed"?`<button class="btn sec" onclick="probe('${esc(x.name)}')">Проверить окно</button>`:""}</div></div>`).join("");
+  const wc=m?m.window_chars:0,ch=+val("prepare.max_chunk_chars")||0,ps=+val("embedding.passage_max_chars")||0,ov=+val("prepare.chunk_overlap")||0;
+  const seen=m?Math.min(ch,ps,wc):Math.min(ch,ps),pct=ch?Math.round(100*seen/ch):0,w=[];
+  if(m&&ps>wc&&wc<3200)w.push(`«Макс. символов в эмбеддинг» (${ps}) больше окна модели (≈${wc}) — лишнее обрежется токенизатором.`);
+  if(m&&ch>wc&&wc<3200)w.push(`В вектор попадёт ≈${pct}% чанка: остальное модель не видит. Оно доступно лексическому поиску и read_code; список процедур чанка добавляется в вектор.`);
+  if(ch&&ch<600)w.push("Чанк < 600 симв.: много мелких точек, индексация заметно дольше.");
+  if(ov>ch/3)w.push("Перекрытие больше трети чанка — уменьшите.");
+  if(!m&&val("embedding.provider")!="openai")w.push("Модель не из каталога: окно неизвестно, проверьте качество через «Подбор настроек».");
+  const changed=["embedding.model","prepare.max_chunk_chars","embedding.passage_max_chars","prepare.chunk_overlap"].some(k=>k in dirty&&dirty[k]!=S.values[k]);
+  const pre=m?m.presets:null;
+  const num=(k,l,h)=>`<label><span>${l}</span><input type="number" data-m="${k}" value="${esc(val(k))}"><small>${h}</small></label>`;
+  $("#settings").innerHTML=`<div class="card"><h2>Модель эмбеддингов</h2>
+    <p class="msg">Выберите модель — параметры чанков подставятся пресетом «Сбалансированно», их можно править. Окно — сколько текста чанка модель реально «видит».</p>
+    <div class="mg">${cards}</div>
+    <label style="margin-top:12px"><span>Другая модель fastembed (имя с Hugging Face)</span><input type="text" id="mCustom" placeholder="org/model" value="${m?"":esc(cur)}" onchange="customModel(this.value)"></label></div>
+  <div class="card"><h2>Чанки</h2>
+    ${pre?`<div class="row" style="margin-bottom:12px"><span class="msg">Пресеты под выбранную модель:</span>
+      <button class="btn sec" onclick="preset('fast')">Быстро (чанк ${pre.fast.chunk})</button>
+      <button class="btn sec" onclick="preset('balanced')">Сбалансированно (${pre.balanced.chunk})</button>
+      <button class="btn sec" onclick="preset('precise')">Точно (${pre.precise.chunk})</button></div>`:""}
+    <div class="grid">${num("prepare.max_chunk_chars","Размер чанка, симв.","сколько кода в одной точке; его целиком читает read_code")}
+    ${num("embedding.passage_max_chars","Макс. символов в эмбеддинг","сколько текста чанка отдаётся модели")}
+    ${num("prepare.chunk_overlap","Перекрытие, симв.","при нарезке огромных процедур по строкам")}
+    ${num("prepare.max_file_mb","Макс. размер файла, МБ","большие XML/модули пропускаются")}</div>
+    ${m?`<p class="msg" style="margin-top:12px">Модель «видит» ≈ <b>${seen}</b> симв. из ${ch} (${pct}% чанка).</p>`:""}
+    ${w.map(x=>`<div class="warn">${ic("alert")}<span>${esc(x)}</span></div>`).join("")}
+    ${changed?`<div class="warn">${ic("alert")}<span>После сохранения нужна индексация с галкой «Пересоздать коллекцию» (вектора и/или нарезка изменились).</span></div>`:""}
+    <p class="msg">Реальное качество и время на вашей конфигурации — «Запуск и проверки» → «Подбор настроек».</p></div>`;
+  document.querySelectorAll("[data-m]").forEach(el=>el.addEventListener("change",()=>{setv(el.dataset.m,el.value);markDirty();drawModels(sec)}));
+}
+async function pickModel(key){const {models}=await api("/api/models");const x=models.find(y=>y.key==key);
+  setv("embedding.model",x.name);setv("embedding.provider",x.provider);applyPreset(x,"balanced");draw()}
+function applyPreset(x,k){const p=x.presets[k];setv("prepare.max_chunk_chars",p.chunk);setv("prepare.chunk_overlap",p.overlap);setv("embedding.passage_max_chars",p.passage)}
+async function preset(k){const {models}=await api("/api/models");const x=models.find(y=>y.name==val("embedding.model"));if(x){applyPreset(x,k);draw()}}
+function customModel(v){v=v.trim();if(!v)return;setv("embedding.model",v);setv("embedding.provider","fastembed");draw()}
+async function probe(name){const r=await post("/api/model/probe",{name});if(r.ok){say("Проверяю окно (при первом запуске — скачивание модели), лог — «Запуск и проверки»")}}
+async function load(){const r=await api("/api/state");if(r.ok===false)return say(r.error,1);S=r;dirty={};draw()}
+function markDirty(){const n=Object.keys(dirty).filter(k=>dirty[k]!=S.values[k]).length;const d=$("#dirty");d.classList.toggle("hide",!n);d.textContent=n?`Несохранённых изменений: ${n}`:""}
+const visible=w=>!w||Object.entries(w).every(([k,vs])=>vs.includes(String(val(k))));
+function draw(){
+  const T=Object.fromEntries([...S.sections.map(s=>[s.id,s.title]),...Object.entries(TITLES)]);
+  $("#tabs").innerHTML=GROUPS.map(([g,ids])=>`<div class="grp">${g}</div>`+ids.filter(id=>T[id]).map(id=>`<button class="${id==tab?"on":""}" ${id==tab?'aria-current="page"':""} onclick="go('${id}')">${ic(ICON[id])}${esc(T[id])}</button>`).join("")).join("");
+  $("#pt").textContent=T[tab];$("#pd").textContent=DESC[tab]||"";
+  const tools=tab=="tools",start=tab=="start";
+  $("#pTools").classList.toggle("hide",!tools);$("#pStart").classList.toggle("hide",!start);$("#settings").classList.toggle("hide",tools||start);
+  $("#bSave").classList.toggle("hide",tools||start);markDirty();
+  if(start){wzLoad();return}
+  if(tools){
+    $("#subs").innerHTML=SUBS.map(([id,t,ico])=>`<button class="${id==sub?"on":""}" onclick="go('tools','${id}')">${ic(ico)}${t}</button>`).join("");
+    document.querySelectorAll("[data-sub]").forEach(e=>e.classList.toggle("hide",e.dataset.sub!=sub));
+    if(sub=="reindex")rvLoad();
+    return}
+  const sec=S.sections.find(s=>s.id==tab);
+  if(sec.custom){drawModels(sec);return}
+  $("#settings").innerHTML=`<div class="card"><div class="grid">`+sec.fields.filter(f=>visible(f[5])).map(([k,l,t,h,o])=>{
+    const v=val(k),hint=h?`<small>${esc(h)}</small>`:"";
+    if(t=="bool")return `<label class="chk"><input type="checkbox" data-k="${k}" ${v===true||v==="true"?"checked":""}><span>${esc(l)}${hint}</span></label>`;
+    if(t=="select"){const all=(o.includes(v)||v===""?o:[v,...o]);return `<div class="fld"><span id="l_${k}">${esc(l)}</span><div class="sel" data-k="${k}"><button type="button" class="selb" aria-haspopup="listbox" aria-expanded="false" aria-labelledby="l_${k} v_${k}"><span id="v_${k}">${esc(v)}</span>${ic("chev")}</button><ul class="sell" role="listbox" aria-labelledby="l_${k}" hidden>${all.map(x=>`<li role="option" tabindex="-1" data-v="${esc(x)}" aria-selected="${x==v}">${esc(x)}</li>`).join("")}</ul></div>${hint}</div>`}
+    if(t=="secret")return `<label><span>${esc(l)}</span><input type="password" data-k="${k}" autocomplete="new-password" value="${esc(dirty[k]??"")}" placeholder="${S.values[k+":set"]?"•••••• задан — оставьте пустым, чтобы не менять":"не задан"}">${hint}</label>`;
+    const typ=(t=="int"||t=="float")?"number":"text",step=t=="float"?' step="any"':"";
+    return `<label><span>${esc(l)}</span><input type="${typ}"${step} data-k="${k}" value="${esc(v)}">${hint}</label>`}).join("")+`</div></div>`;
+  document.querySelectorAll("input[data-k]").forEach(el=>{const ev=el.type=="checkbox"?"change":"input";el.addEventListener(ev,()=>{dirty[el.dataset.k]=el.type=="checkbox"?el.checked:el.value;markDirty()})});
+  wireSel();
+}
+document.addEventListener("click",e=>document.querySelectorAll(".sel").forEach(w=>{const ul=w.querySelector(".sell");if(!w.contains(e.target)&&!ul.hidden){ul.hidden=true;w.querySelector(".selb").setAttribute("aria-expanded","false")}}));
+function wireSel(){
+  document.querySelectorAll(".sel").forEach(w=>{
+    const b=w.querySelector(".selb"),ul=w.querySelector(".sell"),items=[...ul.children];
+    const open=i=>{ul.hidden=false;b.setAttribute("aria-expanded","true");(items[i>=0?i:0]||{focus(){}}).focus()};
+    const shut=f=>{ul.hidden=true;b.setAttribute("aria-expanded","false");if(f)b.focus()};
+    const pick=li=>{const v=li.dataset.v;dirty[w.dataset.k]=v;b.firstChild.textContent=v;items.forEach(x=>x.setAttribute("aria-selected",x==li));shut(1);
+      if(S.sections.some(s=>s.fields.some(f=>f[5]&&w.dataset.k in f[5]))){draw();const nb=document.querySelector(`.sel[data-k="${w.dataset.k}"] .selb`);if(nb)nb.focus()}else markDirty()};
+    const cur=()=>items.findIndex(x=>x.getAttribute("aria-selected")=="true");
+    b.addEventListener("click",()=>ul.hidden?open(cur()):shut());
+    b.addEventListener("keydown",e=>{if(e.key=="ArrowDown"||e.key=="ArrowUp"){e.preventDefault();open(cur())}});
+    ul.addEventListener("click",e=>{const li=e.target.closest("li");if(li)pick(li)});
+    ul.addEventListener("keydown",e=>{const i=items.indexOf(document.activeElement);
+      if(e.key=="ArrowDown"){e.preventDefault();items[Math.min(i+1,items.length-1)].focus()}
+      else if(e.key=="ArrowUp"){e.preventDefault();items[Math.max(i-1,0)].focus()}
+      else if(e.key=="Home"){e.preventDefault();items[0].focus()}
+      else if(e.key=="End"){e.preventDefault();items[items.length-1].focus()}
+      else if(e.key=="Enter"||e.key==" "){e.preventDefault();if(i>=0)pick(items[i])}
+      else if(e.key=="Escape"){e.preventDefault();shut(1)}
+      else if(e.key=="Tab")shut();
+      else if(e.key.length==1){const j=items.findIndex((x,n)=>n>i&&x.textContent.toLowerCase().startsWith(e.key.toLowerCase()));if(j>=0)items[j].focus()}});
+  })}
+async function save(){
+  if(!Object.keys(dirty).length){say("Нет изменений");return true}
+  const r=await post("/api/save",{values:dirty});
+  if(!r.ok)return false;
+  say(`Сохранено: ${r.changed.length} (прежняя версия — config.yaml.bak). `+(r.mcp_error?"MCP-сервер не перезапущен: "+r.mcp_error:r.mcp_restarted?"MCP-сервер перезапущен с новыми настройками.":"Claude Desktop, Cursor, LM Studio перезапустите сами — они читают настройки при старте."),!!r.mcp_error);
+  await load();return true}
+async function genToken(){
+  if(!confirm("Создать новый токен доступа? Старый перестанет работать — его нужно будет заменить в клиенте."))return;
+  const r=await post("/api/token/gen");
+  if(r.ok){showTok=true;say("Токен создан и записан в .env"+(r.mcp_error?". MCP-сервер не перезапущен: "+r.mcp_error:r.mcp_restarted?", MCP-сервер перезапущен":"")+". Скопируйте его в клиента.",!!r.mcp_error);wzLoad()}}
+const NAMES={deps:"Пакеты Python",config:"Конфиг",dump:"Папка выгрузки",chunks:"Пробная нарезка",qdrant:"Qdrant (индекс)",embedding:"Модель поиска",vectors:"Векторы (смысловой поиск)",search:"Поиск по коду",onec:"Связь с 1С",llm:"LLM (только для CLI)",mcp:"MCP-сервер"};
+const NEEDS={chunks:"dump",vectors:"qdrant",search:"qdrant"};  // при провале этой проверки зависимая пропускается
+async function checkAll(){
+  if(Object.keys(dirty).length&&!(await save()))return;
+  const b=$("#bAll");b.disabled=true;const t=$("#chk");t.innerHTML="";let bad=0,warn=0;const res={};
+  for(const n of Object.keys(NAMES)){
+    t.insertAdjacentHTML("beforeend",`<tr id="c_${n}"><td>${NAMES[n]}</td><td><span class="chip wait">…</span></td><td class="h">${n=="embedding"?"проверяю… при первом запуске скачивается модель, до 10 минут":"проверяю…"}</td></tr>`);
+    const dep=NEEDS[n];
+    const r=dep&&res[dep]&&!res[dep].ok?{ok:false,skip:true,detail:`пропущено: сначала исправьте «${NAMES[dep]}»`}:await api("/api/check/"+n);
+    res[n]=r;
+    const st=r.skip?["wait","dot","Пропущено"]:!r.ok?["err","x","Ошибка"]:r.warn?["warn","alert","Внимание"]:["ok","ok","ОК"];
+    if(!r.ok&&!r.skip)bad++;if(r.ok&&r.warn)warn++;
+    $("#c_"+n).innerHTML=`<td>${NAMES[n]}</td><td><span class="chip ${st[0]}">${ic(st[1])}${st[2]}</span></td><td>${esc(r.detail||r.error)}${r.hint?`<div class="h">→ ${esc(r.hint)}</div>`:""}</td>`}
+  b.disabled=false;say(bad?`Проблем: ${bad} — подсказки в таблице`:warn?"Работает, есть замечания — см. таблицу":"Всё работает",!!bad)}
+async function start(u,m){const r=await post(u);if(r.ok)say(m)}
+async function toggleMcp(){
+  const stop=window._mcpRun,r=await post(stop?"/api/mcp/stop":"/api/mcp/start");if(!r.ok)return;
+  if(stop){say("MCP-сервер остановлен");return}
+  say("MCP-сервер запускается…");
+  for(let i=0;i<20;i++){await new Promise(z=>setTimeout(z,1000));const j=await api("/api/log");
+    if(j.mcp&&j.mcp.running&&(j.mcp.log||[]).some(l=>l.includes("/mcp"))){say("MCP-сервер работает");return}
+    const last=((j.mcp&&j.mcp.log)||[]).slice(-1)[0]||"";
+    if(j.mcp&&!j.mcp.running&&i>2){say("MCP-сервер не запустился"+(last?": "+last:" — подробности во вкладке «Журнал»"),1);return}}
+  say("MCP-сервер ещё загружается — статус обновится сам")}
+async function ingest(){
+  if($("#oRecreate").checked&&!confirm("Коллекция будет удалена и построена заново (на большой конфигурации — часы). Продолжить?"))return;
+  if(Object.keys(dirty).length&&!(await save()))return;
+  const r=await post("/api/ingest",{recreate:$("#oRecreate").checked,full:$("#oFull").checked,code_only:!$("#oHelp").checked,skip_prepare:$("#oSkip").checked});
+  if(r.ok)say("Индексация запущена — ход во вкладке «Журнал»")}
+async function tune(){const r=await post("/api/tune",{source:$("#tSrc").value.trim(),budget:$("#tBud").value,sizes:$("#tSizes").value,models:$("#tModels").value});if(r.ok)say("Подбор запущен — ход во вкладке «Журнал»")}
+async function applyTune(){if(!confirm("Записать рекомендованные модель и размер фрагмента в config.yaml? После этого нужна индексация заново."))return;const r=await post("/api/tune/apply");if(r.ok){say("Применено: "+r.changed.join(", ")+". Теперь запустите «Переиндексация» → «Заменить на новую конфигурацию».");load()}}
+async function evalRun(){const r=await post("/api/eval",{n:$("#eN").value,classes:$("#eC").value.trim()});if(r.ok)say("Оценка запущена — результат во вкладке «Журнал»")}
+async function onboard(){const r=await post("/api/onboard",{source:$("#oSrc").value.trim(),name:$("#oName").value.trim(),limit:$("#oLim").value,activate:$("#oAct").checked});if(r.ok)say("Подключение запущено — ход во вкладке «Журнал»")}
+// ---- мастер «Первый запуск»
+const fmt=n=>(+n||0).toLocaleString("ru-RU");
+const chip=(el,k,t)=>{const m={ok:["ok","ok"],err:["err","x"],warn:["warn","alert"],wait:["wait","dot"]}[k];el.className="chip "+m[0];el.innerHTML=ic(m[1])+esc(t)};
+const codeCol=s=>((s&&s.qdrant&&s.qdrant.collections)||[]).find(c=>c.name==s.code_collection);
+let wzSeq=0;
+async function wzLoad(){
+  if(!$("#wzSrc").value&&S)$("#wzSrc").value=S.values["paths.code_dir"]||"";
+  $("#wzHint").textContent="Проверяю состояние…";
+  const my=++wzSeq,[st,mc]=await Promise.all([api("/api/setup"),api("/api/mcp")]);
+  if(my!=wzSeq)return;  // пришёл ответ на устаревший запрос
+  WZ=st;MC=mc.ok===false?null:mc;wzDraw()}
+function wzDraw(){
+  const s=WZ;if(!s||!s.qdrant){$("#wzHint").textContent="Не удалось получить состояние: "+((s&&(s.error||s.detail))||"нет ответа");return}
+  const d=s.dump,q=s.qdrant,cc=codeCol(s),pts=cc&&cc.points||0;
+  const ok1=d.exists&&d.configuration_xml,ok2=!!q.ok,ok3=ok2&&pts>0,busy=!!window._busy;
+  const local=s.qdrant_mode=="local",dk=s.docker,a=[];
+  const lockedByMcp=local&&!ok2&&s.mcp&&s.mcp.running;  // встроенный Qdrant занят MCP-сервером — индексация сама его остановит
+  // 1
+  chip($("#wc1"),ok1?"ok":d.exists?"warn":"err",ok1?"готово":d.exists?"проверьте":"нужно сделать");
+  $("#wd1").textContent=!d.set?"Папка ещё не указана.":!d.exists?`Папка не найдена: ${d.path}`:d.configuration_xml?`Найдена выгрузка: ${d.path}`:`Папка есть, но в ней нет Configuration.xml — это точно корень выгрузки? ${d.path}`;
+  // 2
+  chip($("#wc2"),ok2?"ok":lockedByMcp?"warn":"err",ok2?"работает":lockedByMcp?"занят MCP":"нужно сделать");
+  let t2;
+  if(ok2)t2=local?`Встроенный режим, папка ${q.path}. Если индексация на крупной конфигурации идёт медленно — поставьте Docker Desktop и переключитесь.`:`Qdrant работает: ${q.url}.`;
+  else if(lockedByMcp){t2="Встроенный индекс сейчас открыт MCP-сервером — это нормально. Индексация (шаг 3) остановит сервер сама; после неё запустите его снова.";a.push(`<button class="btn sec" onclick="toggleMcp().then(wzLoad)">Остановить MCP-сервер</button>`)}
+  else if(local)t2=`${q.error||""} ${q.hint||""}`;
+  else if(dk=="running"){t2="Docker запущен, контейнер Qdrant ещё не поднят — нажмите кнопку (первый раз скачивается образ ~70 МБ).";a.push(`<button class="btn" onclick="wzDocker()">Запустить Qdrant в Docker</button>`)}
+  else if(dk=="stopped")t2="Docker установлен, но не запущен. Откройте Docker Desktop, дождитесь статуса Engine running и нажмите «Проверить снова». Или работайте без Docker.";
+  else t2="Docker не найден. Самый простой путь — встроенный режим (ничего ставить не нужно). Для крупных конфигураций лучше установить Docker Desktop.";
+  if(!ok2&&!local)a.push(`<button class="btn ${dk=="running"?"sec":""}" onclick="wzMode('local')">Без Docker: встроенный режим</button>`);
+  if(!ok2&&!local&&dk=="missing")a.push(`<a class="btn sec" style="text-decoration:none" href="https://www.docker.com/products/docker-desktop/" target="_blank" rel="noopener">Скачать Docker Desktop</a>`);
+  if(local&&dk!="missing")a.push(`<button class="btn sec" onclick="wzMode('url')">Перейти на Docker</button>`);
+  if(!ok2)a.push(`<button class="btn sec" onclick="wzLoad()">Проверить снова</button>`);
+  $("#wd2").textContent=t2;$("#wa2").innerHTML=a.join("");
+  // 3
+  chip($("#wc3"),busy&&WZjob?"wait":ok3?"ok":"err",busy&&WZjob?"идёт":ok3?"готово":"нужно сделать");
+  $("#wd3").textContent=ok3?`В индексе ${fmt(pts)} фрагментов (коллекция ${cc.name}). Если выгрузили конфигурацию заново — нажмите кнопку ещё раз.`:ok2?"Индекса пока нет.":"";
+  $("#wzGo").textContent=ok3?"Проиндексировать заново":"Проиндексировать";
+  const why=busy?"":!d.exists?"Сначала шаг 1 — папка выгрузки.":!ok2&&!lockedByMcp?"Сначала шаг 2 — Qdrant.":"";
+  $("#wzGo").disabled=busy||!!why;$("#wzWhy").textContent=busy&&!WZjob?"Сейчас выполняется другая задача — дождитесь окончания (статус слева внизу).":why;
+  $("#ws3").classList.toggle("locked",!!why);
+  // 4
+  chip($("#wc4"),ok3?"ok":"wait",ok3?"можно подключать":"после шага 3");
+  $("#ws4").classList.toggle("locked",!ok3);
+  wzMcp(s.mcp);
+  const n=[ok1,ok2,ok3].filter(Boolean).length;
+  $("#wzCount").className="chip "+(n==3?"ok":"wait");$("#wzCount").innerHTML=(n==3?ic("ok"):"")+`${n} из 3`;
+  $("#wzBar").style.width=(n/3*100)+"%";
+  $("#wzHint").textContent=n==3?"Индекс готов. Осталось подключить AI-клиента (шаг 4) и задать первый вопрос.":`Пройдите шаги по порядку. Следующий: ${!ok1?"1 — папка выгрузки":!ok2?"2 — хранилище индекса":"3 — индексация"}.`}
+function wzKind(k){wzKindSel=k;wzMcp(WZ&&WZ.mcp)}
+function wzMcp(m){
+  $("#wk1").classList.toggle("on",wzKindSel=="stdio");$("#wk2").classList.toggle("on",wzKindSel=="http");
+  $("#wk1").setAttribute("aria-selected",wzKindSel=="stdio");$("#wk2").setAttribute("aria-selected",wzKindSel=="http");
+  $("#wzStdio").classList.toggle("hide",wzKindSel!="stdio");$("#wzHttp").classList.toggle("hide",wzKindSel!="http");
+  if(!MC)return;
+  $("#wzJson").textContent=JSON.stringify(MC.stdio,null,2);
+  const run=m&&m.running;window._mcpRun=run;
+  $("#wzMcp").textContent=run?"Остановить MCP-сервер":"Запустить MCP-сервер";$("#wzMcp").className="btn"+(run?" sec":"");
+  $("#wzMcpSt").innerHTML=run?`<span class="chip ok">${ic("ok")}работает</span>`:`<span class="chip wait">не запущен</span>`;
+  const tok=MC.token,mask=tok?(showTok?tok:"•".repeat(12)):"";
+  $("#wzTok").textContent=tok?"Сгенерировать новый токен":"Создать токен";
+  $("#wzTokH").textContent=tok?"старый токен перестанет работать — обновите его в клиенте":"нужен, если сервер доступен из сети (0.0.0.0)";
+  const lanWarn=MC.lan&&!tok?`<div class="warn" style="grid-column:1/-1">${ic("alert")}<span>Сервер открыт для всей сети без токена — любой компьютер сети может обращаться к агенту. Сгенерируйте токен или выберите 127.0.0.1 во вкладке «MCP-сервер».</span></div>`:"";
+  $("#wzKv").innerHTML=`<span class="h">Адрес из Open WebUI в Docker</span><span><code>${esc(MC.docker_url)}</code> <button class="btn sec" onclick="copyText(MC.docker_url,'Адрес скопирован')">Копировать</button></span>
+    <span class="h">Адрес с этого ПК</span><span><code>${esc(MC.local_url)}</code> <button class="btn sec" onclick="copyText(MC.local_url,'Адрес скопирован')">Копировать</button></span>
+    <span class="h">Токен (Bearer)</span><span>${tok?`<code>${esc(mask)}</code> <button class="btn sec" onclick="showTok=!showTok;wzMcp(WZ&&WZ.mcp)">${showTok?"Скрыть":"Показать"}</button> <button class="btn sec" onclick="copyText(MC.token,'Токен скопирован')">Копировать</button>`:'не задан — в Open WebUI выберите Auth: None (только для 127.0.0.1)'}</span>${lanWarn}`}
+async function wzSaveSrc(){
+  const v=$("#wzSrc").value.trim().replace(/^"|"$/g,"");if(!v)return say("Укажите путь к папке выгрузки",1);
+  $("#wzSrc").value=v;dirty["paths.code_dir"]=v;await save()}  // save → load → draw → wzLoad
+async function wzMode(m){dirty["qdrant.mode"]=m;if(await save())say(m=="local"?"Включён встроенный режим — Docker не нужен":"Включён режим Docker")}
+async function wzDocker(){const r=await post("/api/docker");if(r.ok){say("Запускаю Qdrant в Docker… статус обновится сам");WZjob=false}}
+let WZjob=false;
+async function wzIndex(){
+  const cc=codeCol(WZ);
+  if(cc&&cc.points&&!confirm(`Индекс (${fmt(cc.points)} фрагментов) будет построен заново из папки выгрузки. Продолжить?`))return;
+  if(Object.keys(dirty).length&&!(await save()))return;
+  const r=await post("/api/reindex",{mode:"replace",source:"",with_help:false});
+  if(r.ok){WZjob=true;started.wz=true;$("#wzDone").classList.add("hide");say("Индексация запущена — ход ниже")}}
+// ---- переиндексация
+async function rvLoad(){
+  if(!$("#rvSrc").value)$("#rvSrc").value=(S&&S.values["paths.code_dir"])||"";
+  $("#rvState").innerHTML='<span class="h">проверяю Qdrant и папку выгрузки…</span>';
+  RV=await api("/api/reindex/status");rvDraw()}
+function rvDraw(){
+  const q=RV&&RV.qdrant,d=RV&&RV.dump;
+  if(!RV||!q){$("#rvState").innerHTML=`<div class="bad"><b>нет данных</b><span class="h">${esc(RV&&(RV.error||RV.detail))}</span></div>`;return rvSum()}
+  const cols=(q.collections||[]).filter(c=>!c.name.includes("files")&&!c.name.includes("procs")).map(c=>`<div class="${c.points?"good":""}"><span class="h">${c.name.endsWith("help")?"Справка платформы":"Код конфигурации"} (${esc(c.name)})</span><b>${c.exists?fmt(c.points)+" фрагм.":"нет"}</b></div>`).join("");
+  $("#rvState").innerHTML=(q.ok?`<div class="good"><span class="h">Qdrant</span><b>работает</b><span class="h">${esc(q.mode)} ${esc(q.url||q.path)}</span></div>`+cols
+    :`<div class="bad"><span class="h">Qdrant</span><b>недоступен</b><span class="h">${esc(q.error||"")} ${esc(q.hint||"")}</span></div>`)
+    +`<div class="${d.exists?"good":"bad"}"><span class="h">Папка выгрузки в настройках</span><b>${!d.set?"не задана":d.exists?(d.configuration_xml?"найдена":"нет Configuration.xml"):"не найдена"}</b><span class="h">${esc(d.path)}</span></div>`;
+  $("#rvDocker").classList.toggle("hide",!!q.ok||q.enabled===false);
+  rvSum()}
+function rvSum(){
+  const m=document.querySelector('input[name=rvMode]:checked').value,help=$("#rvHelp").checked,q=RV&&RV.qdrant;
+  const code=((q&&q.collections)||[]).find(c=>RV&&c.name==RV.code_collection),hc=((q&&q.collections)||[]).find(c=>c.name.endsWith("help"));
+  const cur=!(q&&q.ok)?"Qdrant сейчас недоступен":code&&code.exists?`«${code.name}», ${fmt(code.points)} фрагм.`:"индекса кода пока нет";
+  const src=$("#rvSrc").value.trim()||"папку из настроек";
+  const T={replace:`Удалю старый индекс (${cur}${help&&hc&&hc.exists?`; и справку «${hc.name}»`:""}), затем нарежу ${src} и проиндексирую заново. Если нарезка упадёт — старый индекс останется нетронутым.`,
+    update:`Нарежу ${src} и добавлю в индекс только изменившиеся фрагменты. Ничего не удаляется.`,
+    clear:`Удалю из Qdrant: ${cur}${help&&hc&&hc.exists?`; справку «${hc.name}»`:""}. Индексировать после этого ничего не буду.`}[m];
+  const mdl=val("embedding.model"),unsaved=Object.keys(dirty).length?" (несохранённые настройки будут сохранены перед запуском)":"";
+  $("#rvPlan").textContent=T+(m=="clear"?"":` Модель поиска: ${mdl}${unsaved}.`)+(q&&q.ok?"":" Кнопка станет активной, когда Qdrant заработает (кнопка «Запустить Qdrant» выше или «Первый запуск», шаг 2).");
+  $("#rvGo").textContent={replace:"Заменить индекс",update:"Обновить индекс",clear:"Удалить индекс"}[m];
+  $("#rvGo").className="btn"+(m=="clear"?" dng":"");
+  $("#rvGo").disabled=!(q&&q.ok)||window._busy}
+async function rvStart(){
+  const m=document.querySelector('input[name=rvMode]:checked').value;
+  const warn={replace:"Старый индекс будет удалён и построен заново (на большой конфигурации — от минут до часов). Продолжить?",update:"",clear:"Индекс кода будет удалён. Агент не сможет искать по коду, пока вы не проиндексируете заново. Продолжить?"}[m];
+  if(warn&&!confirm(warn))return;
+  if(Object.keys(dirty).length&&!(await save()))return;
+  const r=await post("/api/reindex",{mode:m,source:$("#rvSrc").value.trim(),with_help:$("#rvHelp").checked});
+  if(r.ok){say("Запущено — ход ниже");started.rv=true;$("#rvDone").classList.add("hide")}}
+function fmtT(s){s=Math.round(s);const h=Math.floor(s/3600),m=Math.floor(s%3600/60);return h?`${h} ч ${m} мин`:m?`${m} мин ${s%60} с`:`${s} с`}
+function jobView(j,P){  // прогресс задачи «reindex» в блоке с префиксом P (rv — Переиндексация, wz — мастер)
+  const fail=!j.running&&j.log.some(l=>l.startsWith("=== ОШИБКА ===")),ok=!j.running&&!fail;
+  $("#"+P+"Steps").innerHTML=j.stages.map((t,i)=>{const n=i+1,c=ok||n<j.step?"done":n==j.step?(fail?"fail":j.running?"run":"done"):"";
+    let bar="";
+    if(c=="run"||c=="fail"){const p=j.progress&&j.progress.step==n?j.progress:null,pc=p&&p.total?Math.min(100,100*p.done/p.total):0;
+      let txt="";if(p&&p.total){const el=(p.t-p.t0),eta=p.done>0&&c=="run"?el*(p.total-p.done)/p.done:0;
+        txt=`${pc.toFixed(0)}% — ${p.done.toLocaleString("ru")} из ${p.total.toLocaleString("ru")} ${esc(p.label||"")}`+(eta>1?`, осталось ≈ ${fmtT(eta)}`:"")+`, прошло ${fmtT(el)}`}
+      else if(c=="run")txt="подготовка… (при первом запуске скачивается модель поиска)";
+      bar=`<div class="pb${p&&p.total?"":" ind"}"><i style="width:${p&&p.total?pc:35}%"></i></div><div class="pt">${txt}</div>`}
+    return `<li class="${c}"><span class="si">${ic(c=="done"?"ok":c=="fail"?"x":c=="run"?"spin":"dot")}</span>${esc(t)}${bar}</li>`}).join("");
+  const eb=$("#"+P+"Err");eb.classList.toggle("hide",!(j.errors&&j.errors.length));eb.textContent=(j.errors||[]).join("\n");
+  const pre=$("#"+P+"Log");pre.classList.remove("hide");pre.textContent=j.log.slice(-25).join("\n");pre.scrollTop=pre.scrollHeight;
+  const sb=$("#"+P+"Stop");sb.disabled=!j.running;if(P=="wz")sb.classList.toggle("hide",!j.running);
+  if(!j.running&&started[P]){started[P]=false;const d=$("#"+P+"Done");d.classList.remove("hide");d.className="msg "+(fail?"err":"ok");
+    d.textContent=fail?"Не получилось. Причина — в красном блоке и последних строках журнала выше (полный журнал — «Запуск и проверки» → «Журнал»).":"Готово. Если MCP-сервер запущен или клиент уже подключён — перезапустите их, чтобы агент увидел новый индекс."}}
+function rvProgress(j){
+  window._busy=j.running;
+  const mine=j.name=="reindex"&&j.stages&&j.stages.length;
+  if(j.running)WZjob=!!mine;  // после перезагрузки страницы ход индексации виден и в мастере
+  if(!mine)return;
+  jobView(j,"rv");
+  if(WZjob||started.wz)jobView(j,"wz");
+  if(!j.running)WZjob=false}
+async function poll(){try{
+  const j=await api("/api/log");
+  if(j.ok!==false&&j.log){
+    $("#run").textContent=j.running?"Выполняется: "+({reindex:"индексация",ingest:"индексация",docker:"запуск Qdrant",pip:"установка пакетов",tune:"подбор настроек",eval:"оценка поиска",onboard:"подключение конфигурации",repair:"починка векторов",probe:"проверка модели"}[j.name]||j.name):"";
+    $("#runbox").classList.toggle("on",!!j.running);
+    if(j.log.length&&(j.running||j.log.length!=window._ll)){window._ll=j.log.length;const o=$("#out"),b=o.scrollTop+o.clientHeight>=o.scrollHeight-20;o.textContent=j.log.join("\n");if(b)o.scrollTop=o.scrollHeight}
+    const wasBusy=window._busy;
+    $("#bIngest").disabled=j.running;rvProgress(j);
+    if(tab=="tools"&&sub=="reindex")$("#rvGo").disabled=j.running||!(RV&&RV.qdrant&&RV.qdrant.ok);
+    window._mcpRun=j.mcp.running;$("#bMcp").textContent=j.mcp.running?"Остановить MCP-сервер":"Запустить MCP-сервер (HTTP)";
+    $("#mcpSt").textContent=j.mcp.running?`работает: http://${j.mcp.host}:${j.mcp.port}/mcp`:"";
+    if(j.mcp.log.length)$("#mcpLog").textContent=j.mcp.log.join("\n");
+    if(WZ&&WZ.mcp&&WZ.mcp.running!=j.mcp.running){WZ.mcp.running=j.mcp.running;if(tab=="start")wzMcp(WZ.mcp)}
+    if(wasBusy&&!j.running){if(tab=="start")wzLoad();if(tab=="tools"&&sub=="reindex")rvLoad()}
+    else if(wasBusy!==j.running&&tab=="start"&&WZ)wzDraw()}
+  }catch(e){console.error(e)}finally{setTimeout(poll,1500)}}
+load();poll();
+</script>
+</body>
+</html>

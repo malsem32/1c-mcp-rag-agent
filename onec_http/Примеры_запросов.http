@@ -1,0 +1,32 @@
+### 1. Список объектов
+GET http://localhost/test/hs/ai/list
+
+### 2. Инфо о базе
+GET http://localhost/test/hs/ai/info
+
+### 3. Структура справочника (для search_fields / resolve_business_fields)
+GET http://localhost/test/hs/ai/object?name=Справочник.Контрагенты
+
+### 4. Структура документа
+GET http://localhost/test/hs/ai/object?name=Документ.РеализацияТоваровУслуг
+
+### 5. Поиск метаданных
+GET http://localhost/test/hs/ai/search?q=реализац&type=Документы&limit=20
+
+### 6. Запрос данных
+POST http://localhost/test/hs/ai/query
+Content-Type: application/json; charset=utf-8
+
+{
+  "query": "ВЫБРАТЬ ПЕРВЫЕ 5\n\tТ.Наименование КАК Наименование,\n\tТ.Код КАК Код\nИЗ\n\tСправочник.Контрагенты КАК Т",
+  "limit": 5
+}
+
+### 7. Документы за период (после resolve полей подставьте свои имена)
+POST http://localhost/test/hs/ai/query
+Content-Type: application/json; charset=utf-8
+
+{
+  "query": "ВЫБРАТЬ ПЕРВЫЕ 10\n\tТ.Номер КАК Номер,\n\tТ.Дата КАК Дата,\n\tПРЕДСТАВЛЕНИЕ(Т.Контрагент) КАК Контрагент,\n\tТ.СуммаДокумента КАК СуммаДокумента\nИЗ\n\tДокумент.РеализацияТоваровУслуг КАК Т\nГДЕ\n\tТ.Дата МЕЖДУ ДАТАВРЕМЯ(2026,1,1,0,0,0) И ДАТАВРЕМЯ(2026,12,31,23,59,59)\n\tИ Т.Проведен = ИСТИНА\nУПОРЯДОЧИТЬ ПО\n\tТ.Дата УБЫВ",
+  "limit": 10
+}

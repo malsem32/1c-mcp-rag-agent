@@ -1,0 +1,151 @@
+# =============================================================================
+# 1C RAG Agent — главный конфиг (все настройки здесь)
+# Секреты (API keys, пароли) — только в .env
+# =============================================================================
+
+# --- Подключение к 1С ---
+# none — без 1С: только код и метаданные из индекса; http — публикация hs/ai; com — COM-соединение
+backend: none
+
+http:
+  # URL публикации 1С (hs/ai), нужен только при backend: http. Код сервиса — onec_http/
+  base_url: "http://localhost/ИмяБазы/hs/ai"
+  timeout: 60.0
+  auth: basic
+  username: ""
+  password: ""   # или RAG_HTTP_PASSWORD в .env
+
+# COM (если backend: com) — обычно не нужен при HTTP
+com:
+  connection_string: ""
+  prog_id: "V83.COMConnector"
+
+# --- Пути данных ---
+paths:
+  knowledge_dir: "knowledge"
+  # ТОЛЬКО для prepare/index (агент runtime сюда НЕ ходит)
+  # папка выгрузки конфигурации в файлы (Конфигуратор); задаётся в панели, «Первый запуск», шаг 1
+  code_dir: ""
+  chunks_jsonl: "knowledge/qdrant_ready/chunks.jsonl"
+  help_jsonl: "knowledge/qdrant_ready/help_chunks.jsonl"
+  object_names_jsonl: "knowledge/qdrant_ready/object_names.jsonl"
+  exports_dir: "exports"
+
+# --- Qdrant (единственный runtime-источник кода/справки) ---
+qdrant:
+  enabled: true
+  # url = Docker/сервер (рекомендуется); local = без Docker, встроенная папка (медленно на крупных конфигурациях)
+  mode: url
+  path: "knowledge/qdrant_data"
+  url: "http://localhost:6333"
+  api_key: ""
+  timeout: 120
+  collection_code: "onec_code"
+  collection_help: "onec_help"
+  collection_procs: "onec_procs"
+  # вся выгрузка файлами (Form.xml/Form.bin/Template.xml/<Объект>.xml/…) — без векторов, читается через зеркало
+  collection_files: "onec_files"
+  chunks_jsonl: "knowledge/qdrant_ready/chunks.jsonl"
+  help_jsonl: "knowledge/qdrant_ready/help_chunks.jsonl"
+  # false = агент НЕ читает knowledge/код_конфигурации (только Qdrant)
+  fallback_filesystem: false
+  # search_code: hybrid | semantic | exact
+  search_mode: hybrid
+  # fallback-лимит если MatchText-индекс недоступен
+  lexical_scan_limit: 8000
+  rrf_k: 60
+  light_rerank: true
+
+# --- Эмбеддинги ---
+embedding:
+  # fastembed — локально, без внешних сервисов. e5-large точнее, но на CPU очень медленно
+  # (для крупных конфигураций — сутки). Подбор модели под вашу конфигурацию — в панели («Подбор настроек»).
+  # После смены модели нужна индексация с пересозданием коллекции.
+  provider: "fastembed"
+  model: "sentence-transformers/paraphrase-multilingual-mpnet-base-v2"
+  batch_size: 64
+  # 0 = все ядра ONNX на эмбеддинг запроса
+  threads: 0
+  passage_max_chars: 2048
+  # base_url / api_key — только если provider: openai
+  base_url: ""
+  api_key: ""
+
+# --- Подготовка чанков (prepare_config_for_qdrant) ---
+prepare:
+  max_file_mb: 8
+  # целевой размер ≈ окно эмбеддера; overlap на hard-split границах
+  max_chunk_chars: 2048
+  chunk_overlap: 100
+  include_bsl: true
+  # Карточки структуры объектов из XML (реквизиты/ТЧ/типы/синонимы) вместо сырого XML
+  xml_cards: true
+  card_chars: 800
+  # Карточки управляемых форм (Form.xml) и макетов (MXL, СКД) вместо сырого XML
+  ui_cards: true
+  # Авто-чистка кода: разделители ////, base64/uuid-блобы; пустые оболочки (только #Область/объявления) отбрасываются
+  clean: true
+  min_body_chars: 80
+  # Убирать повторяющиеся чанки (RLS-шаблоны в Rights.xml и т.п.); счётчик повторов — в payload.dup_count
+  dedupe: true
+  # Объекты/реквизиты/формы с этими префиксами имени (помечены к удалению) не индексируются; [] — выключить
+  skip_name_prefixes: ["del_"]
+
+# --- LLM (OpenAI-compatible) ---
+llm:
+  # Пресеты: lmstudio | ollama | xai | openai | gemini | openrouter | aigate
+  provider: lmstudio
+  model: ""            # идентификатор модели у провайдера
+  base_url: ""          # пусто → из providers[provider]
+  api_key: ""           # пусто → .env (OPENROUTER_API_KEY / RAG_LLM_API_KEY)
+  temperature: 0.1
+  # Окно контекста модели: поставьте как у вашей модели (часто 32000–128000)
+  context_window: 32000
+  max_tokens: 8192
+  max_tool_rounds: 10
+  # Потолок размера результата одного tool; per-tool лимиты — в context_budget.TOOL_BUDGETS
+  tool_result_max_chars: 8000
+  # История диалога: мягкий предел сообщений; реальная нарезка — по ходам (turns)
+  history_max_messages: 40
+  history_max_turns: 6
+  keep_recent_tool_full: 2
+  old_tool_chars: 700
+  # Краткий дневник сессии (сжатие старого контекста)
+  diary_max_chars: 1400
+  diary_trigger_turns: 4
+  diary_pressure: 0.72
+
+# --- Агент ---
+agent:
+  language: "ru"
+  read_only: true
+  # Кому отвечает агент: developer (программист) | user (пользователь 1С) | both
+  audience: both
+  # Модель сама выбирает limit; max — потолок безопасности
+  query_default_limit: 25
+  query_max_limit: 200
+  list_objects_cap: 200
+
+# --- Пресеты LLM ---
+providers:
+  lmstudio:
+    base_url: "http://localhost:1234/v1"
+    api_key: "lm-studio"
+  ollama:
+    base_url: "http://localhost:11434/v1"
+    api_key: "ollama"
+  xai:
+    base_url: "https://api.x.ai/v1"
+    api_key_env: "XAI_API_KEY"
+  openai:
+    base_url: "https://api.openai.com/v1"
+    api_key_env: "OPENAI_API_KEY"
+  gemini:
+    base_url: "https://generativelanguage.googleapis.com/v1beta/openai/"
+    api_key_env: "GEMINI_API_KEY"
+  openrouter:
+    base_url: "https://openrouter.ai/api/v1"
+    api_key_env: "OPENROUTER_API_KEY"
+  aigate:
+    base_url: "https://api.aigate.shop/v1"
+    api_key_env: "AIGATE_API_KEY"

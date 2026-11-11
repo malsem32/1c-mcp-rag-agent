@@ -1,0 +1,59 @@
+exports/
+uploads/
+.env
+.env.local
+*.pyc
+__pycache__/
+.venv/
+venv/
+*.xlsx
+.DS_Store
+knowledge/qdrant_data/
+knowledge/qdrant_docker_data/
+knowledge/qdrant_ready/
+
+
+# --- Локальные настройки и секреты (шаблон: config.example.yaml, .env.example) ---
+config.yaml
+config.yaml.bak
+*.bak
+.env.*
+!.env.example
+
+# --- Архивы, бинарники 1С, логи, кэш ---
+*.rar
+*.zip
+*.epf
+*.erf
+*.cf
+*.cfe
+*.log
+.cache/
+
+# --- Локальные настройки Claude Code ---
+.claude/launch.json
+.claude/settings.local.json
+
+# --- Материалы владельца и сторонний контент ---
+info/
+# выгрузка конфигурации 1С (чужой код, может быть коммерческим)
+knowledge/код_конфигурации/
+# справка платформы (распакованная .hbk) и документация ИТС — материалы фирмы 1С (авторское право)
+knowledge/справка_платформы/*
+!knowledge/справка_платформы/README.md
+knowledge/документация/its_*/
+# зеркало файлов выгрузки конфигурации (генерируется индексацией)
+knowledge/qdrant_mirror/
+# заметки о конкретной базе владельца
+knowledge/база/наша_база.md
+
+# --- Прочее (аудит) ---
+*.hbk
+*.dt
+*.7z
+*.pid
+Thumbs.db
+desktop.ini
+.idea/
+.vscode/
+.pytest_cache/

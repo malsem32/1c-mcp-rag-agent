@@ -1,0 +1,82 @@
+# Когда что делать (простым языком)
+
+главное: >
+  Типы вопросов: (1) данные базы → отчёты;
+  (2) регистры проведения / движения ЛЮБОГО документа → analyze_object_movements;
+  (3) код/формы → inspect_code (Qdrant);
+  (4) синтаксис платформы → code_help / knowledge_search.
+  Имена объектов — только из tools. Не «подождите, анализирую» без tool.
+
+когда_спросить:
+  - Несколько похожих документов — какой нужен?
+  - Неясен период (год, месяц)
+  - Неясно, по чему группировать
+  - Нужен ответ в чате или файл эксель?
+  - Фраза двусмысленна (оплата / счёт / платёжка)
+
+правила:
+  - Полное имя объекта — из поиска
+  - Реквизиты — из structure (get_object_structure / describe_object)
+  - Регистры проведения — analyze_object_movements (не structure)
+  - Отчёты — build_report с фразой
+  - Excel — только если просили
+  - Код конфигурации — Qdrant (inspect_code / search_code), не FS dump
+  - Синтаксис — code_help / knowledge_search
+  - BSL русский (Для/Пока/Если), не FOR/WHILE
+  - Запрет: «подождите / анализирую / изучаю» вместо tool
+
+шаги:
+  - "1. Данные базы → build_report(фраза) или report_builder («построй отчёт…»)"
+  - "1b. Универсальный построитель: report_builder (plan+period+group_by+excel)"
+  - "1c. Аналитика (ABC, вклад, просрочка, воронка, графики) → analyst_report"
+  - "2. Регистры/движения/проведение → analyze_object_movements(request=фраза, full_name=…)"
+  - "3. Реквизиты/ТЧ/формы → describe_object / get_object_structure"
+  - "4. Код/откуда данные → inspect_code(request=фраза)"
+  - "5. Неясен объект → resolve_object"
+  - "6. Синтаксис → code_help / knowledge_search"
+  - "7. Excel/графики — по просьбе (compare/analyst → multi-sheet + charts)"
+
+ситуации:
+  - когда: Обычный отчёт
+    шаги:
+      - "build_report с фразой"
+      - "Показать таблицу"
+  - когда: По каким регистрам проводится документ / какие движения / что пишет
+    шаги:
+      - "analyze_object_movements(request=фраза целиком) — ЛЮБОЙ документ"
+      - "full_name=Документ.X если уже известен"
+      - "Ответ по summary + registers (не structure, не «подождите»)"
+  - когда: Какие есть / список / покажи все …
+    шаги:
+      - "build_report или resolve_object"
+      - "Имена только из tools"
+  - когда: Реквизиты / ТЧ / формы объекта
+    шаги:
+      - "describe_object / get_object_structure"
+  - когда: Откуда данные / как устроена форма/отчёт
+    шаги:
+      - "inspect_code(request=фраза) — Qdrant"
+  - когда: Сравнить месяцы/годы
+    шаги:
+      - "compare_periods / build_report — вернёт variance + top_growth/decline"
+  - когда: ABC / вклад в прирост / аномалии / воронка / план-факт
+    шаги:
+      - "analyst_report(request=фраза) или build_report (авто-роут)"
+  - когда: Просрочка / aging
+    шаги:
+      - "analyst_report mode=aging (linked остатки + корзины)"
+  - когда: Красивый excel с графиками
+    шаги:
+      - "«в excel с графиками» / to_excel на compare_periods или analyst_report"
+  - когда: Нужен эксель
+    шаги:
+      - "В фразе «в эксель» / выгрузка / график"
+  - когда: Синтаксис 1С / BSL / язык запросов
+    шаги:
+      - "code_help или knowledge_search"
+      - "Русский BSL"
+  - когда: Аудит запросов / антипаттерны / как лучше писать ВЫБРАТЬ
+    шаги:
+      - "audit_query_code(request=фраза) или query_text=ВЫБРАТЬ…"
+      - "Справочник: query_syntax_help(antipatterns)"
+      - "Ответ по findings; рекомендация «НЕ применено»"

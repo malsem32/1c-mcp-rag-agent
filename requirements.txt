@@ -1,0 +1,12 @@
+fastmcp>=2.0.0
+httpx>=0.27.0
+openai>=1.40.0
+PyYAML>=6.0
+openpyxl>=3.1.0
+# pin ~server 1.13.x (docker/local qdrant 1.13); newer clients warn/break
+qdrant-client>=1.13.0,<1.14.0
+fastembed>=0.3.0
+numpy>=1.24
+# COM-бэкенд (Windows + платформа 1С):
+pywin32>=306; sys_platform == "win32"
+snowballstemmer>=2.2
